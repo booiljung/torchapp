@@ -18,9 +18,7 @@ public:
 	double gain(double z)
 	{
 		double xp = A * x;
-		//double Pp = A * P * (1.0/A);
 		double Pp = A * P * A;
-		//double K = Pp * (1.0/H) * (1.0/(H * Pp * (1/H) + R));
 		double K = Pp * H * (1.0/(H * Pp * H + R));
 
 		x = xp + K * (z - H * xp);
