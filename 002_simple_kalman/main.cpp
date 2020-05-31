@@ -39,8 +39,7 @@ int main()
 	normal_distribution<double> gaussian(0.0, 2.0);
 	simple_kalman sk;
 
-	auto start = high_resolution_clock::now();
-	std::this_thread::sleep_for(1s);
+	high_resolution_clock::now();	
 
 	double z = 5.0;
 	double d = -0.01;
