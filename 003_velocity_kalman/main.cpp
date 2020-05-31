@@ -4,28 +4,54 @@
 #include <thread>
 #include <tuple>
 
-class simple_kalman
+class velocity_kalman
 {
-	double A = 1.0,
-		H = 1.0,
-		Q = 0.0,
-		R = 3.0;
+	double dt = 0.1;
 
-	double x = 0,
-		P = 20;
+	torch::Tensor A = torch::tensor
+	({
+		{ 1.0, dt  },
+		{ 0.0, 1.0 },
+	});
+	torch::Tensor H = torch::tensor({ 1, 0 });
+	torch::Tensor Q = torch::tensor
+	({
+		{ 1, 0 },
+		{ 0, 3 },
+	});
+	double R = 10.0;
 
+	torch::Tensor x = torch::tensor({ 0, 20 });
+	torch::Tensor P = 5.0 * torch::eye(2);
 
 public:
-	std::tuple<double, double, double> gain(double z)
+	std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> gain(double z)
 	{
-		double xp = A * x;
-		double Pp = A * P * A;
-		double K = Pp * H * (1.0/(H * Pp * H + R));
+		torch::Tensor xp = A * x;
+		torch::Tensor Pp = A * P * A;
+		torch::Tensor K = Pp * H * (1.0/(H * Pp * H + R));
 
 		x = xp + K * (z - H * xp);
 		P = Pp - K * H * Pp;
 		return std::make_tuple(x, P, K);
 	}
+
+private:
+	std::default_random_engine rand;
+	std::normal_distribution<double> gaussian = std::normal_distribution<double>(0.0, 2.0);
+	double pp = 0.0, vp = 80.0;
+
+public:
+	double rand_position()
+	{
+		double w = 0.0 + 10.0 * this->gaussian(this->rand);
+		double v = 0.0 + 10.0 * this->gaussian(this->rand);
+		double z = pp + vp * dt + v;
+		pp = z - v; // true position
+		vp = 80.0 + w; // true velocity
+		return z;
+	}
+
 };
 
 
@@ -37,26 +63,17 @@ int main()
 
 	std::default_random_engine rand;
 	normal_distribution<double> gaussian(0.0, 2.0);
-	simple_kalman sk;
+	velocity_kalman vk;
 
-	auto start = high_resolution_clock::now();
-	std::this_thread::sleep_for(1s);
+	high_resolution_clock::now();
 
-	double z = 5.0;
-	double d = -0.01;
 	while (true)
 	{
-		std::this_thread::sleep_for(0.1s);		
-		double v = gaussian(rand);
-		z += d;
-		if (d < 0.0 && z <= 0.0)
-			d = +0.01;
-		else if (0.0 < d && 5.0 <= d)
-			d = -0.01;
-		double x, P, K;
-		tie(x, P, K) = sk.gain(z + v);
+		std::this_thread::sleep_for(0.1s);
+		double z = vk.rand_position();
+		torch::Tensor x, P, K;
+		tie(x, P, K) = vk.gain(z);	
 		cout << "z:" << z
-			<< ", z+v:" << z + v
 			<< ", x:" << x
 			<< ", P:" << P
 			<< ", K:" << K
