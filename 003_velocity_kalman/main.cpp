@@ -13,7 +13,7 @@ class velocity_kalman
 		{ 1.0, dt  },
 		{ 0.0, 1.0 },
 	});
-	torch::Tensor H = torch::tensor({ 1, 0 });
+	torch::Tensor H = torch::tensor({{ 1, 0 }});
 	torch::Tensor Q = torch::tensor
 	({
 		{ 1, 0 },
@@ -21,15 +21,15 @@ class velocity_kalman
 	});
 	double R = 10.0;
 
-	torch::Tensor x = torch::tensor({ 0, 20 });
+	torch::Tensor x = torch::tensor({{ 0, 20 }});
 	torch::Tensor P = 5.0 * torch::eye(2);
 
 public:
 	std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> gain(double z)
 	{
 		torch::Tensor xp = A * x;
-		torch::Tensor Pp = A * P * A;
-		torch::Tensor K = Pp * H * (1.0/(H * Pp * H + R));
+		torch::Tensor Pp = A * P * torch::transpose(A, 0, 1) + Q;
+		torch::Tensor K = Pp * torch::transpose(H, 0, 1) * torch::inverse((H * Pp * torch::transpose(H, 0, 1) + R));
 
 		x = xp + K * (z - H * xp);
 		P = Pp - K * H * Pp;
@@ -73,10 +73,10 @@ int main()
 		double z = vk.rand_position();
 		torch::Tensor x, P, K;
 		tie(x, P, K) = vk.gain(z);	
-		cout << "z:" << z
-			<< ", x:" << x
-			<< ", P:" << P
-			<< ", K:" << K
-			<< endl;
+		cout << "=============" << endl
+			<< "z:" << z << endl
+			<< "x:" << x << endl
+			<< "P:" << P << endl
+			<< "K:" << K << endl;
 	}
 }
