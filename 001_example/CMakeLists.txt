@@ -13,7 +13,8 @@ set_property(TARGET 001_example PROPERTY CXX_STANDARD 14)
 # the DLLs need to be copied to avoid memory errors.
 if (MSVC)
     file(GLOB TORCH_DLLS "${TORCH_INSTALL_PREFIX}/lib/*.dll")
-    add_custom_command(TARGET 001_example
+    add_custom_command(
+        TARGET 001_example
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${TORCH_DLLS}
