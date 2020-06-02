@@ -1,5 +1,6 @@
 mkdir build
 cd build
 cmake -DCMAKE_PREFIX_PATH=/home/booil/libtorch ..
+cmake --build . --config Debug
 cmake --build . --config Release
 

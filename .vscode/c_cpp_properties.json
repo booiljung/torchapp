@@ -3,8 +3,11 @@
         {
             "name": "Linux",
             "includePath": [
+                "/usr/include/**",
+                "/usr/local/include/**",
                 "${workspaceFolder}/**",
-                "~/libtorch/include/**"
+                "~/libtorch/include/**",
+                "~/Qt5.13.2/5.13.2/gcc_64/include"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
