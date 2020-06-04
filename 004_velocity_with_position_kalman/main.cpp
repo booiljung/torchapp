@@ -18,8 +18,8 @@ class velocity_kalman
 	torch::Tensor H = torch::tensor({{ 1, 0 }}, at::kDouble);
 	torch::Tensor Q = torch::tensor
 	({
-		{ 1, 0 },
-		{ 0, 3 },
+		{ 1.0, 0.0 },
+		{ 0.0, 3.0 },
 	}, at::kDouble);
 	double R = 10.0;
 
@@ -72,22 +72,22 @@ int main(int argc, char *argv[])
 
 	QVector<double> history_t;
 	QVector<double> history_z;
-	QVector<double> history_zv;
-	QVector<double> history_x0;
-	QVector<double> history_x1;
+	QVector<double> history_x00;
+	QVector<double> history_x11;
 
 	double t = 0.0;
 	double dt = 0.1;
 	for (int i = 0; i < 100; i++)
 	{
 		double z = vk.rand_position();
+		history_z.push_back(z);
+
 		torch::Tensor x, P, K;
 		tie(x, P, K) = vk.gain(z);
 		history_t.push_back(t);
-		history_z.push_back(z);
 		auto x_accessor = x.accessor<double, 2>();
-		history_x0.push_back(x_accessor[0][0]);
-		history_x1.push_back(x_accessor[0][1]);
+		history_x00.push_back(x_accessor[0][0]);
+		history_x11.push_back(x_accessor[1][1]);
 		cout << "=============" << endl
 			<< "z:" << z << endl
 			<< "x:" << x << endl
@@ -108,11 +108,11 @@ int main(int argc, char *argv[])
     QCoreApplication::setApplicationVersion(QT_VERSION_STR);
 
 	QCustomPlot customPlot;
-	customPlot.resize(1600, 600);
+	customPlot.resize(1600, 1200);
 	customPlot.xAxis->setLabel("time");
 	customPlot.yAxis->setLabel("value");
 	customPlot.xAxis->setRange(0, 100*dt);
-	customPlot.yAxis->setRange(-50, 1000);
+	customPlot.yAxis->setRange(-1000, 1000);
 
 	// create graph and assign data to it:
 	QPen pen;
@@ -121,30 +121,24 @@ int main(int argc, char *argv[])
 	pen.setColor(Qt::GlobalColor::black);
 	customPlot.graph()->setPen(pen);
 	customPlot.graph()->setData(history_t, history_z);
-
-	customPlot.addGraph();
-	pen.setColor(Qt::GlobalColor::red);
-	customPlot.graph()->setPen(pen);
-	customPlot.graph()->setData(history_t, history_zv);
+	customPlot.graph()->setName("z");
 
 	customPlot.addGraph();
 	pen.setColor(Qt::GlobalColor::blue);
 	customPlot.graph()->setPen(pen);
-	customPlot.graph()->setData(history_t, history_x0);
+	customPlot.graph()->setData(history_t, history_x00);
+	customPlot.graph()->setName("x00");
 
 	customPlot.addGraph();
 	pen.setColor(Qt::GlobalColor::cyan);
 	customPlot.graph()->setPen(pen);
-	customPlot.graph()->setData(history_t, history_x1);
+	customPlot.graph()->setData(history_t, history_x11);
+	customPlot.graph()->setName("x11");
 
-	//customPlot.addGraph();
-	//customPlot.graph()->setData(history_t, history_P);
-	//customPlot.addGraph();
-	//customPlot.graph()->setData(history_t, history_K);
+	customPlot.legend->setVisible(true);
+	customPlot.legend->setRowSpacing(-3);
 
-	//, history_zv, history_x, history_P, history_K
-
-	
+	customPlot.axisRect()->setupFullAxesBox();
 	customPlot.replot();
 	customPlot.show();
 
