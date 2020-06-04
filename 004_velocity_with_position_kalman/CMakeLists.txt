@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
-set(PROJECT_NAME 004_velocity_kalman)
+set(PROJECT_NAME 004_velocity_with_position_kalman)
 project(${PROJECT_NAME} LANGUAGES CXX)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -26,7 +26,7 @@ endif()
 
 set(
     CMAKE_CXX_FLAGS
-    "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}"    
+    "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}"
     )
 
 add_executable(
@@ -36,11 +36,12 @@ add_executable(
     )
 
 target_link_libraries(
-    ${PROJECT_NAME} PRIVATE
-    "${TORCH_LIBRARIES}"
-    Qt5::Widgets
-    Qt5::PrintSupport
-    pthread
+    ${PROJECT_NAME}
+    PRIVATE
+        "${TORCH_LIBRARIES}"
+        Qt5::Widgets
+        Qt5::PrintSupport
+        pthread
     )
 
 set_property(
