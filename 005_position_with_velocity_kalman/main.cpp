@@ -4,36 +4,53 @@
 #include <thread>
 #include <tuple>
 
-class velocity_kalman
+#include "qcustomplot.h"
+
+class position_kalman
 {
+
 	double dt = 0.1;
 
 	torch::Tensor A = torch::tensor
 	({
 		{ 1.0, dt  },
 		{ 0.0, 1.0 },
-	});
-	torch::Tensor H = torch::tensor({{ 0, 1 }});
+	}, at::dtype(at::kDouble));
+	torch::Tensor H = torch::tensor
+	({
+		{ 0.0, 1.0 }
+	}, at::dtype(at::kDouble));
 	torch::Tensor Q = torch::tensor
 	({
-		{ 1, 0 },
-		{ 0, 3 },
-	});
+		{ 1.0, 0.0 },
+		{ 0.0, 3.0 },
+	}, at::dtype(at::kDouble));
 	double R = 10.0;
 
-	torch::Tensor x = torch::tensor({{ 0, 20 }});
-	torch::Tensor P = 5.0 * torch::eye(2);
+	torch::Tensor x = torch::tensor({
+			{ 0.0 },
+			{ 20.0 }
+	}, at::dtype(at::kDouble));
+
+	torch::Tensor P = 5.0 * torch::eye(2, at::dtype(at::kDouble));
 
 public:
-	std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> gain(double z)
+	torch::Tensor gain(double z)
 	{
-		torch::Tensor xp = A * x;
-		torch::Tensor Pp = A * P * torch::transpose(A, 0, 1) + Q;
-		torch::Tensor K = Pp * torch::transpose(H, 0, 1) * torch::inverse((H * Pp * torch::transpose(H, 0, 1) + R));
-
-		x = xp + K * (z - H * xp);
-		P = Pp - K * H * Pp;
-		return std::make_tuple(x, P, K);
+		torch::Tensor xp = matmul(A, x);
+		torch::Tensor Pp = matmul(matmul(A, P), torch::transpose(A, 0, 1)) + Q;
+		torch::Tensor K = matmul(
+			matmul(
+				Pp, torch::transpose(H, 0, 1)
+			), torch::inverse(
+				matmul(
+					matmul(H, Pp), torch::transpose(H, 0, 1)
+				) + R
+			)
+		);
+		x = xp + matmul(K, (z - matmul(H, xp)));
+		P = Pp - matmul(matmul(K, H), Pp);
+		return x;
 	}
 
 private:
@@ -53,28 +70,90 @@ public:
 };
 
 
-int main()
+int main(int argc, char *argv[])
 {
 	using namespace std;
 	using namespace std::chrono;
 	using namespace std::chrono_literals;
+	using namespace at;
 
 	std::default_random_engine rand;
-	normal_distribution<double> gaussian(0.0, 2.0);
-	velocity_kalman vk;
+	normal_distribution<double> gaussian(0.0, 10.0);
+	position_kalman pk;
 
 	high_resolution_clock::now();
 
-	while (true)
+	QVector<double> history_t;
+	QVector<double> history_z;
+	QVector<double> history_x00;
+	QVector<double> history_x01;
+
+	double t = 0.0;
+	double dt = 0.1;
+	for (int i = 0; i < 100; i++)
 	{
-		std::this_thread::sleep_for(0.1s);
-		double z = vk.rand_velocity();
-		torch::Tensor x, P, K;
-		tie(x, P, K) = vk.gain(z);	
+		history_t.push_back(t);
+
+		double z = pk.rand_velocity();
+		history_z.push_back(z);
+
+		torch::Tensor x = pk.gain(z);	
+		auto x_accessor = x.accessor<double, 2>();
+		history_x00.push_back(x_accessor[0][0]-20);
+		history_x01.push_back(x_accessor[0][1]-10);
+
 		cout << "=============" << endl
 			<< "z:" << z << endl
-			<< "x:" << x << endl
-			<< "P:" << P << endl
-			<< "K:" << K << endl;
+			<< "x:" << x << endl;
+
+		t += dt;		
 	}
+
+#ifdef Q_OS_ANDROID
+    QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+#endif
+	
+	//Q_INIT_RESOURCE(application);
+
+	QApplication app(argc, argv);
+    QCoreApplication::setOrganizationName("QtProject");
+    QCoreApplication::setApplicationName("Application Example");
+    QCoreApplication::setApplicationVersion(QT_VERSION_STR);
+
+	QCustomPlot customPlot;
+	customPlot.resize(1600, 1200);
+	customPlot.xAxis->setLabel("time");
+	customPlot.yAxis->setLabel("value");
+	customPlot.xAxis->setRange(0, 100*dt);
+	customPlot.yAxis->setRange(-200, 1200);
+
+	// create graph and assign data to it:
+	QPen pen;
+
+	customPlot.addGraph();
+	pen.setColor(Qt::GlobalColor::black);
+	customPlot.graph()->setPen(pen);
+	customPlot.graph()->setData(history_t, history_z);
+	customPlot.graph()->setName("z");
+
+	customPlot.addGraph();
+	pen.setColor(Qt::GlobalColor::blue);
+	customPlot.graph()->setPen(pen);
+	customPlot.graph()->setData(history_t, history_x00);
+	customPlot.graph()->setName("x00");
+
+	customPlot.addGraph();
+	pen.setColor(Qt::GlobalColor::cyan);
+	customPlot.graph()->setPen(pen);
+	customPlot.graph()->setData(history_t, history_x01);
+	customPlot.graph()->setName("x11");
+
+	customPlot.legend->setVisible(true);
+	customPlot.legend->setRowSpacing(-3);
+
+	customPlot.axisRect()->setupFullAxesBox();
+	customPlot.replot();
+	customPlot.show();
+
+	app.exec();	
 }

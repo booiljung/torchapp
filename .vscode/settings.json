@@ -2,5 +2,6 @@
     "files.associations": {
         "thread": "cpp",
         "qmultimap": "cpp"
-    }
+    },
+    "cmake.sourceDirectory": "${workspaceFolder}/005_position_with_velocity_kalman"
 }

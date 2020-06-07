@@ -1,0 +1,1 @@
+cmake -DCMAKE_PREFIX_PATH=/home/booil/libtorch ..

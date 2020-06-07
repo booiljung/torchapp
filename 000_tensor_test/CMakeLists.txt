@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
-project(005_position_with_velocity_kalman LANGUAGES CXX)
+set(PROJECT_NAME 000_tensor_test)
+project(${PROJECT_NAME} LANGUAGES CXX)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOUIC ON)
@@ -31,7 +32,6 @@ set(
 add_executable(
     ${PROJECT_NAME}
     main.cpp
-    qcustomplot.cpp
     )
 
 target_link_libraries(
